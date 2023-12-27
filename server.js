@@ -49,7 +49,7 @@ app.get('/user/:userId/conversation', async (req, res) => {
 app.get('/user/:userId/conversation/:conversationId', async (req, res) => {
   try {
     const conversationId = req.params.conversationId;
-    const conversation = await Conversation.findById(conversationId);
+    const conversation = await Conversation.findById(conversationId).populate('members').populate('lastMessage');
     res.json(conversation);
   } catch (error) {
     res.status(500).send(error);
@@ -59,7 +59,7 @@ app.get('/user/:userId/conversation/:conversationId', async (req, res) => {
 app.get('/user/:userId/conversation/:conversationId/message', async (req, res) => {
   try {
     const conversationId = req.params.conversationId;
-    const messages = await Message.find({ conversationId: conversationId });
+    const messages = await Message.find({ conversationId: conversationId }).populate('');
     res.json(messages);
   } catch (error) {
     res.status(500).send(error);
@@ -73,6 +73,7 @@ app.post('/user/:userId/conversation', async (req, res) => {
       text: '',
       sentAt: new Date().toISOString(),
     });
+    console.log('name: ', req.body.name);
     const newConversation = new Conversation({
       name: req.body.name,
       members: req.body.userIds,
@@ -90,8 +91,8 @@ app.post('/user/:userId/conversation/:conversationId/message', async (req, res) 
     const newMessage = new Message({
       userId: req.params.userId,
       text: req.body.text,
-      sentAt: new Date().toISOString(), // or any other date format you prefer
-      // conversationId can be added if you want to link it directly to the conversation
+      sentAt: new Date().toISOString(),
+      conversationId: req.params.conversationId,
     });
 
     const savedMessage = await newMessage.save();
