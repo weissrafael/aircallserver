@@ -68,14 +68,15 @@ app.get('/user/:userId/conversation/:conversationId/message', async (req, res) =
 
 app.post('/user/:userId/conversation', async (req, res) => {
   try {
+    const lastMessage = await Message.create({
+      userId: req.body.userId,
+      text: '',
+      sentAt: new Date().toISOString(),
+    });
     const newConversation = new Conversation({
       name: req.body.name,
       members: req.body.userIds,
-      lastMessage: new Message({
-        userId: req.params.userId,
-        text: '',
-        sentAt: new Date().toISOString(),
-      }),
+      lastMessage: lastMessage._id,
     });
     const savedConversation = await newConversation.save();
     res.json(savedConversation);
