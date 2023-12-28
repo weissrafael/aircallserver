@@ -5,6 +5,8 @@ const Contact = require('./models/Contact');
 const Message = require('./models/Message');
 const Conversation = require('./models/Conversation');
 const cors = require('cors');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 const port = 3001;
 const app = express();
@@ -106,3 +108,49 @@ app.post('/user/:userId/conversation/:conversationId/message', async (req, res) 
   }
 });
 
+app.post('/signup', async (req, res) => {
+  try {
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(req.body.password, 10);
+
+    // Create a new user
+    const user = new Contact({
+      name: req.body.name,
+      imageUrl: req.body.imageUrl,
+      lastname: req.body.lastname,
+      lastSeenAt: new Date().toISOString(),
+      email: req.body.email,
+      password: hashedPassword
+    });
+
+    // Save the user
+    const newUser = await user.save();
+    res.status(201).json({ newUser });
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
+
+const jwtSecret = '9vA48Dwm*9-72@Vmwx5S+H!z#RpqN3t6'; // Use an environment variable for the secret in production
+
+// Login
+app.post('/login', async (req, res) => {
+  try {
+    // Find the user by email
+    const user = await Contact.findOne({ email: req.body.email });
+    if (!user) {
+      return res.status(401).send('User not found.');
+    }
+
+    // Check the password
+    if (await bcrypt.compare(req.body.password, user.password)) {
+      // Create a token
+      const token = jwt.sign({ userId: user._id }, jwtSecret, { expiresIn: '4h' });
+      res.json({ token, user });
+    } else {
+      res.status(401).send('Authentication failed');
+    }
+  } catch (error) {
+    res.status(500).send(error);
+  }
+});
