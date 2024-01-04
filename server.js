@@ -13,8 +13,6 @@ const app = express();
 app.use(cors());
 app.use(bodyParser.json());
 
-
-// Replace the uri string with your MongoDB connection string.
 const uri = "mongodb+srv://weissfrontend:040656aa@cluster0.dvjapfd.mongodb.net/?retryWrites=true&w=majority";
 
 mongoose.connect(uri, { useNewUrlParser: true, useUnifiedTopology: true })
@@ -110,10 +108,8 @@ app.post('/user/:userId/conversation/:conversationId/message', async (req, res) 
 
 app.post('/signup', async (req, res) => {
   try {
-    // Hash the password
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
 
-    // Create a new user
     const user = new Contact({
       name: req.body.name,
       imageUrl: req.body.imageUrl,
@@ -123,28 +119,24 @@ app.post('/signup', async (req, res) => {
       password: hashedPassword
     });
 
-    // Save the user
     const newUser = await user.save();
-    res.status(201).json({ newUser });
+    const token = jwt.sign({ userId: newUser._id }, jwtSecret, { expiresIn: '4h' });
+    res.status(201).json({ token, user: newUser });
   } catch (error) {
     res.status(500).send(error);
   }
 });
 
-const jwtSecret = '9vA48Dwm*9-72@Vmwx5S+H!z#RpqN3t6'; // Use an environment variable for the secret in production
+const jwtSecret = '9vA48Dwm*9-72@Vmwx5S+H!z#RpqN3t6';
 
-// Login
 app.post('/login', async (req, res) => {
   try {
-    // Find the user by email
     const user = await Contact.findOne({ email: req.body.email });
     if (!user) {
       return res.status(401).send('User not found.');
     }
 
-    // Check the password
     if (await bcrypt.compare(req.body.password, user.password)) {
-      // Create a token
       const token = jwt.sign({ userId: user._id }, jwtSecret, { expiresIn: '4h' });
       res.json({ token, user });
     } else {
